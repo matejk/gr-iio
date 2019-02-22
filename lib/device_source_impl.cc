@@ -1,18 +1,18 @@
 /* -*- c++ -*- */
-/* 
+/*
  * Copyright 2014 Analog Devices Inc.
  * Author: Paul Cercueil <paul.cercueil@analog.com>
- * 
+ *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
  * any later version.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this software; see the file COPYING.  If not, write to
  * the Free Software Foundation, Inc., 51 Franklin Street,
@@ -362,9 +362,23 @@ namespace gr {
 	unsigned long items = std::min(items_in_buffer,
 			(unsigned long) noutput_items);
 
+
 	for (unsigned int i = 0; i < output_items.size(); i++) {
-		channel_read(channel_list[i], output_items[i],
-				items * sizeof(short));
+		if (i >= channel_list.size()) {
+			break;
+		}
+
+		// HACK! HACK! for Uberscope MK1 to overcome AD gr-iio+Scopy that assumes 16-bit data.
+
+		// Convert 8-bit input data to 16-bit interpreted by Scopy
+		std::vector<char> buf(items);
+		channel_read(channel_list[i], static_cast<void*>(buf.data()), items * sizeof(char));
+		short* outbuf = static_cast<short*>(output_items[i]);
+		for (int i = 0; i < items; i++) {
+			outbuf[i] = static_cast<short>(buf[i]);
+		}
+
+		// <<< HACK! HACK !
 
 		if (!byte_offset) {
 			tag_t tag;
